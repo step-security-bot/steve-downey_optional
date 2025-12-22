@@ -5,6 +5,9 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   pre-commit-push:
     name: Pre-Commit check on Push
@@ -15,11 +18,16 @@ jobs:
       contents: read
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: 3.13
 
@@ -27,7 +35,7 @@ jobs:
         # only made in the push commit.
         #
         # So linting error persists when there's formatting problem.
-      - uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
   pre-commit-pr:
     name: Pre-Commit check on PR
@@ -41,8 +49,13 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
         # pull_request_target checkout the base of the repo
         # We need to checkout the actual pr to lint the changes.
@@ -52,16 +65,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: 3.13
 
         # we only lint on the changed file in PR.
       - name: Get Changed Files
         id: changed-files
-        uses: step-security/changed-files@v46
+        uses: step-security/changed-files@95b56dadb92a30ca9036f16423fd3c088a71ee94 # v46.0.5
 
-      - uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         id: run-pre-commit
         with:
           extra_args: --files ${{ steps.changed-files.outputs.all_changed_files }}
