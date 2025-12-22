@@ -11,8 +11,14 @@ on:
   permissions:
     contents: read
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      checks: write  # for coverallsapp/github-action to create new checks
+      contents: read  # for actions/checkout to fetch code
     name: ${{ matrix.config.name }}
     runs-on: ubuntu-24.04
     container:
@@ -31,7 +37,12 @@ jobs:
           - {name: "Ubuntu GCC 13", tag: "gcc:13", toolchain: "gcc-13",  cmake_args: "-G \"Ninja Multi-Config\" -DCMAKE_CONFIGURATION_TYPES=\"RelWithDebInfo;Asan\"  	-DCMAKE_PREFIX_PATH=\"./infra/cmake\" "}
           - {name: "Ubuntu GCC 12", tag: "gcc:12", toolchain: "gcc-12",  cmake_args: "-G \"Ninja Multi-Config\" -DCMAKE_CONFIGURATION_TYPES=\"RelWithDebInfo;Asan\"  	-DCMAKE_PREFIX_PATH=\"./infra/cmake\" "}
     steps:
-      - uses: actions/checkout@v6
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           submodules: 'true'
         # If Clang 17, install a newer version of libc++ and libc++abi.
@@ -104,7 +115,7 @@ jobs:
           cmake --build .build --config Gcov --target process_coverage -- -k 0
       - name: Coveralls
         if: matrix.config.coverage
-        uses: coverallsapp/github-action@main
+        uses: coverallsapp/github-action@ba6dae83310bbd6d33ff77092650dc40bd444a2a # main
         with:
           file: .build/coverage.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -118,7 +129,12 @@ jobs:
       issues: write
     steps:
       # See https://github.com/cli/cli/issues/5075
-      - uses: actions/checkout@v6
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Create issue
         run: |
           issue_num=$(gh issue list -s open -S "[SCHEDULED-BUILD] Build & Test failure" -L 1 --json number | jq 'if length == 0 then -1 else .[0].number end')
